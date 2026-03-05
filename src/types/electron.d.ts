@@ -789,6 +789,7 @@ export interface ElectronAPI {
     onExportProgress: (callback: (payload: { current: number; total: number; status: string }) => void) => () => void
     selectExportDir: () => Promise<{ canceled: boolean; filePath?: string }>
     getSnsUsernames: () => Promise<{ success: boolean; usernames?: string[]; error?: string }>
+    getUserPostCounts: () => Promise<{ success: boolean; counts?: Record<string, number>; error?: string }>
     getExportStatsFast: () => Promise<{ success: boolean; data?: { totalPosts: number; totalFriends: number; myPosts: number | null }; error?: string }>
     getExportStats: () => Promise<{ success: boolean; data?: { totalPosts: number; totalFriends: number; myPosts: number | null }; error?: string }>
     getUserPostStats: (username: string) => Promise<{ success: boolean; data?: { username: string; totalPosts: number }; error?: string }>

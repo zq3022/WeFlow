@@ -292,7 +292,9 @@ class SnsService {
     private contactCache: ContactCacheService
     private imageCache = new Map<string, string>()
     private exportStatsCache: { totalPosts: number; totalFriends: number; myPosts: number | null; updatedAt: number } | null = null
+    private userPostCountsCache: { counts: Record<string, number>; updatedAt: number } | null = null
     private readonly exportStatsCacheTtlMs = 5 * 60 * 1000
+    private readonly userPostCountsCacheTtlMs = 5 * 60 * 1000
     private lastTimelineFallbackAt = 0
     private readonly timelineFallbackCooldownMs = 3 * 60 * 1000
 
@@ -504,10 +506,6 @@ class SnsService {
         const raw = row.total ?? row.count ?? row.cnt ?? Object.values(row)[0]
         const num = Number(raw)
         return Number.isFinite(num) && num > 0 ? Math.floor(num) : 0
-    }
-
-    private escapeSqlString(value: string): string {
-        return value.replace(/'/g, "''")
     }
 
     private pickTimelineUsername(post: any): string {
@@ -868,62 +866,82 @@ class SnsService {
         })
     }
 
+    private async getUserPostCountsFromTimeline(): Promise<Record<string, number>> {
+        const pageSize = 500
+        const counts: Record<string, number> = {}
+        let offset = 0
+
+        for (let round = 0; round < 2000; round++) {
+            const result = await wcdbService.getSnsTimeline(pageSize, offset, undefined, undefined, 0, 0)
+            if (!result.success || !Array.isArray(result.timeline)) {
+                throw new Error(result.error || '获取朋友圈用户总条数失败')
+            }
+
+            const rows = result.timeline
+            if (rows.length === 0) break
+
+            for (const row of rows) {
+                const username = this.pickTimelineUsername(row)
+                if (!username) continue
+                counts[username] = (counts[username] || 0) + 1
+            }
+
+            if (rows.length < pageSize) break
+            offset += rows.length
+        }
+
+        return counts
+    }
+
+    async getUserPostCounts(options?: {
+        preferCache?: boolean
+    }): Promise<{ success: boolean; counts?: Record<string, number>; error?: string }> {
+        const preferCache = options?.preferCache ?? true
+        const now = Date.now()
+
+        try {
+            if (
+                preferCache &&
+                this.userPostCountsCache &&
+                now - this.userPostCountsCache.updatedAt <= this.userPostCountsCacheTtlMs
+            ) {
+                return { success: true, counts: this.userPostCountsCache.counts }
+            }
+
+            const counts = await this.getUserPostCountsFromTimeline()
+            this.userPostCountsCache = {
+                counts,
+                updatedAt: Date.now()
+            }
+            return { success: true, counts }
+        } catch (error) {
+            console.error('[SnsService] getUserPostCounts failed:', error)
+            if (this.userPostCountsCache) {
+                return { success: true, counts: this.userPostCountsCache.counts }
+            }
+            return { success: false, error: String(error) }
+        }
+    }
+
     async getUserPostStats(username: string): Promise<{ success: boolean; data?: { username: string; totalPosts: number }; error?: string }> {
         const normalizedUsername = this.toOptionalString(username)
         if (!normalizedUsername) {
             return { success: false, error: '用户名不能为空' }
         }
 
-        const escapedUsername = this.escapeSqlString(normalizedUsername)
-        const primaryResult = await wcdbService.execQuery(
-            'sns',
-            null,
-            `SELECT COUNT(1) AS total FROM SnsTimeLine WHERE user_name = '${escapedUsername}'`
-        )
-
-        const primaryTotal = (primaryResult.success && primaryResult.rows && primaryResult.rows.length > 0)
-            ? this.parseCountValue(primaryResult.rows[0])
-            : 0
-        if (primaryResult.success && primaryTotal > 0) {
+        const countsResult = await this.getUserPostCounts({ preferCache: true })
+        if (countsResult.success) {
+            const totalPosts = countsResult.counts?.[normalizedUsername] ?? 0
             return {
                 success: true,
                 data: {
                     username: normalizedUsername,
-                    totalPosts: primaryTotal
+                    totalPosts: Math.max(0, Number(totalPosts || 0))
                 }
             }
         }
 
-        const fallbackResult = await wcdbService.execQuery(
-            'sns',
-            null,
-            `SELECT COUNT(1) AS total FROM SnsTimeLine WHERE userName = '${escapedUsername}'`
-        )
-
-        if (fallbackResult.success) {
-            const fallbackTotal = fallbackResult.rows && fallbackResult.rows.length > 0
-                ? this.parseCountValue(fallbackResult.rows[0])
-                : 0
-            return {
-                success: true,
-                data: {
-                    username: normalizedUsername,
-                    totalPosts: Math.max(primaryTotal, fallbackTotal)
-                }
-            }
-        }
-
-        if (primaryResult.success) {
-            return {
-                success: true,
-                data: {
-                    username: normalizedUsername,
-                    totalPosts: primaryTotal
-                }
-            }
-        }
-
-        return { success: false, error: primaryResult.error || fallbackResult.error || '统计单个好友朋友圈失败' }
+        return { success: false, error: countsResult.error || '统计单个好友朋友圈失败' }
     }
 
     // 安装朋友圈删除拦截
@@ -943,7 +961,12 @@ class SnsService {
 
     // 从数据库直接删除朋友圈记录
     async deleteSnsPost(postId: string): Promise<{ success: boolean; error?: string }> {
-        return wcdbService.deleteSnsPost(postId)
+        const result = await wcdbService.deleteSnsPost(postId)
+        if (result.success) {
+            this.userPostCountsCache = null
+            this.exportStatsCache = null
+        }
+        return result
     }
 
     /**

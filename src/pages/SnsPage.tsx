@@ -497,11 +497,12 @@ export default function SnsPage() {
         setAuthorTimelineTotalPosts(null)
 
         try {
-            const result = await window.electronAPI.sns.getUserPostStats(target.username)
+            const result = await window.electronAPI.sns.getUserPostCounts()
             if (requestToken !== authorTimelineStatsTokenRef.current) return
 
-            if (result.success && result.data) {
-                setAuthorTimelineTotalPosts(Math.max(0, Number(result.data.totalPosts || 0)))
+            if (result.success && result.counts) {
+                const totalPosts = result.counts[target.username] ?? 0
+                setAuthorTimelineTotalPosts(Math.max(0, Number(totalPosts || 0)))
             } else {
                 setAuthorTimelineTotalPosts(null)
             }

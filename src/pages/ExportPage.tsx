@@ -1513,6 +1513,7 @@ function ExportPage() {
   const [nowTick, setNowTick] = useState(Date.now())
   const [isContactsListAtTop, setIsContactsListAtTop] = useState(true)
   const [isContactsHeaderDragging, setIsContactsHeaderDragging] = useState(false)
+  const [contactsHorizontalScrollLeft, setContactsHorizontalScrollLeft] = useState(0)
   const [contactsHorizontalScrollMetrics, setContactsHorizontalScrollMetrics] = useState({
     viewportWidth: 0,
     contentWidth: 0
@@ -5632,6 +5633,19 @@ function ExportPage() {
   const contactsBottomScrollbarInnerStyle = useMemo<CSSProperties>(() => ({
     width: `${Math.max(contactsHorizontalScrollMetrics.contentWidth, contactsHorizontalScrollMetrics.viewportWidth)}px`
   }), [contactsHorizontalScrollMetrics.contentWidth, contactsHorizontalScrollMetrics.viewportWidth])
+  const contactsActionStickyStyle = useMemo<CSSProperties>(() => {
+    const maxScrollLeft = Math.max(0, contactsHorizontalScrollMetrics.contentWidth - contactsHorizontalScrollMetrics.viewportWidth)
+    if (maxScrollLeft <= 0) return {}
+
+    const compensatedTranslateX = Math.min(0, contactsHorizontalScrollLeft - maxScrollLeft)
+    return Math.abs(compensatedTranslateX) > 0.5
+      ? { transform: `translateX(${compensatedTranslateX}px)` }
+      : {}
+  }, [
+    contactsHorizontalScrollLeft,
+    contactsHorizontalScrollMetrics.contentWidth,
+    contactsHorizontalScrollMetrics.viewportWidth
+  ])
   const nonExportBackgroundTasks = useMemo(() => (
     backgroundTasks.filter(task => task.sourcePage !== 'export')
   ), [backgroundTasks])
@@ -5686,6 +5700,10 @@ function ExportPage() {
     if (source !== 'bottom' && bottomScrollbar && Math.abs(bottomScrollbar.scrollLeft - scrollLeft) > 1) {
       bottomScrollbar.scrollLeft = scrollLeft
     }
+
+    setContactsHorizontalScrollLeft(prev => (
+      Math.abs(prev - scrollLeft) > 1 ? scrollLeft : prev
+    ))
 
     window.requestAnimationFrame(() => {
       if (contactsScrollSyncSourceRef.current === source) {
@@ -5774,6 +5792,9 @@ function ExportPage() {
       if (Math.abs(viewport.scrollLeft - clampedScrollLeft) > 1) {
         viewport.scrollLeft = clampedScrollLeft
       }
+      setContactsHorizontalScrollLeft(prev => (
+        Math.abs(prev - clampedScrollLeft) > 1 ? clampedScrollLeft : prev
+      ))
 
       const bottomScrollbar = contactsBottomScrollbarRef.current
       if (bottomScrollbar) {
@@ -5995,7 +6016,7 @@ function ExportPage() {
               )}
             </div>
           )}
-          <div className="row-action-cell">
+          <div className="row-action-cell" style={contactsActionStickyStyle}>
             <div className={`row-action-main ${hasRecentExport ? '' : 'single-line'}`.trim()}>
               <div className={`row-export-action-stack ${hasRecentExport ? '' : 'single-line'}`.trim()}>
                 <button
@@ -6044,6 +6065,7 @@ function ExportPage() {
     isLoading,
     isSessionEnriching,
     showSessionDetailPanel,
+    contactsActionStickyStyle,
     shouldShowMutualFriendsColumn,
     shouldShowSnsColumn,
     snsUserPostCounts,

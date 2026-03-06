@@ -22,7 +22,7 @@
 
 .export-top-bar {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 12px;
 }
 
@@ -531,6 +531,7 @@
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
+  align-self: stretch;
   transition: border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
 
   &:hover {
@@ -3305,6 +3306,7 @@
   }
 
   .task-center-card {
+    align-self: auto;
     width: 100%;
     justify-content: space-between;
   }

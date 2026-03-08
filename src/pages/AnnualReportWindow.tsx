@@ -127,12 +127,6 @@ function AnnualReportWindow() {
 
   const { currentTheme, themeMode } = useThemeStore()
 
-  // 应用主题到独立窗口
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', currentTheme)
-    document.documentElement.setAttribute('data-mode', themeMode)
-  }, [currentTheme, themeMode])
-
   // Section refs
   const sectionRefs = {
     cover: useRef<HTMLElement>(null),

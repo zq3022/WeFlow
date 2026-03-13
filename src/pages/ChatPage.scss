@@ -1605,6 +1605,7 @@
   align-items: center;
   gap: 12px;
   border-bottom: 1px solid var(--border-color);
+  -webkit-app-region: drag;
 
   .session-avatar {
     width: 40px;
@@ -1638,6 +1639,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    -webkit-app-region: no-drag;
 
     .jump-calendar-anchor {
       position: relative;

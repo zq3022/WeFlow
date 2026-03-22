@@ -66,6 +66,7 @@ export const CONFIG_KEYS = {
   NOTIFICATION_FILTER_LIST: 'notificationFilterList',
   MESSAGE_PUSH_ENABLED: 'messagePushEnabled',
   WINDOW_CLOSE_BEHAVIOR: 'windowCloseBehavior',
+  QUOTE_LAYOUT: 'quoteLayout',
 
   // 词云
   WORD_CLOUD_EXCLUDE_WORDS: 'wordCloudExcludeWords',
@@ -90,6 +91,7 @@ export interface ExportDefaultMediaConfig {
 }
 
 export type WindowCloseBehavior = 'ask' | 'tray' | 'quit'
+export type QuoteLayout = 'quote-top' | 'quote-bottom'
 
 const DEFAULT_EXPORT_MEDIA_CONFIG: ExportDefaultMediaConfig = {
   images: true,
@@ -660,6 +662,7 @@ export interface ContactsListCacheContact {
   displayName: string
   remark?: string
   nickname?: string
+  alias?: string
   type: 'friend' | 'group' | 'official' | 'former_friend' | 'other'
 }
 
@@ -1172,6 +1175,7 @@ export async function getContactsListCache(scopeKey: string): Promise<ContactsLi
       displayName,
       remark: typeof item.remark === 'string' ? item.remark : undefined,
       nickname: typeof item.nickname === 'string' ? item.nickname : undefined,
+      alias: typeof item.alias === 'string' ? item.alias : undefined,
       type: (type === 'friend' || type === 'group' || type === 'official' || type === 'former_friend' || type === 'other')
         ? type
         : 'other'
@@ -1205,6 +1209,7 @@ export async function setContactsListCache(scopeKey: string, contacts: ContactsL
       displayName,
       remark: contact?.remark ? String(contact.remark) : undefined,
       nickname: contact?.nickname ? String(contact.nickname) : undefined,
+      alias: contact?.alias ? String(contact.alias) : undefined,
       type
     })
   }
@@ -1407,6 +1412,16 @@ export async function getWindowCloseBehavior(): Promise<WindowCloseBehavior> {
 
 export async function setWindowCloseBehavior(behavior: WindowCloseBehavior): Promise<void> {
   await config.set(CONFIG_KEYS.WINDOW_CLOSE_BEHAVIOR, behavior)
+}
+
+export async function getQuoteLayout(): Promise<QuoteLayout> {
+  const value = await config.get(CONFIG_KEYS.QUOTE_LAYOUT)
+  if (value === 'quote-bottom') return value
+  return 'quote-top'
+}
+
+export async function setQuoteLayout(layout: QuoteLayout): Promise<void> {
+  await config.set(CONFIG_KEYS.QUOTE_LAYOUT, layout)
 }
 
 // 获取词云排除词列表

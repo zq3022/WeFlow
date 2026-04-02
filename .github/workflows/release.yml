@@ -276,7 +276,7 @@ jobs:
           - Windows arm64: ${WINDOWS_ARM64_URL:-$RELEASE_PAGE}
           - macOS（M系列芯片）: ${MAC_URL:-$RELEASE_PAGE}
           - Linux (.tar.gz): ${LINUX_TAR_URL:-$RELEASE_PAGE}
-          - linux (.AppImage): ${LINUX_APPIMAGE_URL:-$RELEASE_PAGE}
+          - Linux (.AppImage): ${LINUX_APPIMAGE_URL:-$RELEASE_PAGE}
 
           ## macOS 安装提示（未知来源）
           - 若打开时提示“来自未知开发者”或“无法验证开发者”，请到「系统设置 -> 隐私与安全性」中允许打开该应用。

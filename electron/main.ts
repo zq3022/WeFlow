@@ -182,7 +182,6 @@ const applyAutoUpdateChannel = (reason: 'startup' | 'settings' = 'startup') => {
   autoUpdater.channel = nextUpdaterChannel
   lastAppliedUpdaterChannel = nextUpdaterChannel
   lastAppliedUpdaterFeedUrl = nextFeedUrl
-  console.log(`[Update](${reason}) 当前版本 ${appVersion}，当前轨道: ${currentTrack}，渠道偏好: ${track}，更新通道: ${autoUpdater.channel}，feed=${nextFeedUrl}，allowDowngrade=${autoUpdater.allowDowngrade}`)
 }
 
 applyAutoUpdateChannel('startup')
@@ -1619,6 +1618,7 @@ function registerIpcHandlers() {
       applyAutoUpdateChannel('settings')
     }
     void messagePushService.handleConfigChanged(key)
+    void insightService.handleConfigChanged(key)
     return result
   })
 
@@ -1644,6 +1644,7 @@ function registerIpcHandlers() {
     }
     configService?.clear()
     messagePushService.handleConfigCleared()
+    insightService.handleConfigCleared()
     return true
   })
 
